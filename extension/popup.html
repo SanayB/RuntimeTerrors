@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shadow SaaS Security Detector</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo"></div>
+            <h1>SaaS Security Monitor</h1>
+            <div class="status-indicator active" id="ext-status"></div>
+        </header>
+
+        <div class="main-card">
+            <div class="domain-header">
+                <span class="label">Current Target</span>
+                <h2 id="current-domain">Scanning...</h2>
+            </div>
+            
+            <div class="risk-badge" id="risk-badge">
+                <span id="risk-level">PENDING</span>
+            </div>
+        </div>
+
+        <div class="grid-stats">
+            <div class="stat-card" id="card-ai">
+                <span class="stat-label">AI Tool Detection</span>
+                <strong class="stat-value" id="ai-status">--</strong>
+            </div>
+            <div class="stat-card">
+                <span class="stat-label">Category</span>
+                <strong class="stat-value" id="category-status">--</strong>
+            </div>
+            <div class="stat-card">
+                <span class="stat-label">Connection</span>
+                <strong class="stat-value" id="https-status">--</strong>
+            </div>
+            <div class="stat-card">
+                <span class="stat-label">Cookies Detected</span>
+                <strong class="stat-value" id="cookie-status">--</strong>
+            </div>
+        </div>
+
+        <div class="permissions-card">
+            <h3>Browser Permissions</h3>
+            <ul class="perm-list">
+                <li>
+                    <span>Camera</span>
+                    <span class="badge" id="perm-camera">--</span>
+                </li>
+                <li>
+                    <span>Microphone</span>
+                    <span class="badge" id="perm-mic">--</span>
+                </li>
+                <li>
+                    <span>Notifications</span>
+                    <span class="badge" id="perm-notif">--</span>
+                </li>
+            </ul>
+        </div>
+        
+        <footer>
+            <button id="refresh-btn" class="btn-scan">Manual Scan</button>
+            <button id="download-btn" class="btn-scan" style="margin-top: 8px; border-color: var(--risk-low); color: var(--risk-low);">Download Output File</button>
+            <p class="footer-text">Secure Enterprise Agent v1.0</p>
+        </footer>
+    </div>
+    <script src="popup.js"></script>
+</body>
+</html>

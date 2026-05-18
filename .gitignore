@@ -1,0 +1,27 @@
+# Ignore temporary and local artifact files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.log
+*.env
+.env
+.env.*
+.vscode/
+node_modules/
+.DS_Store
+*.tmp
+*/temp
+*.sqlite
+*.db
+
+# Ignore Python virtual environment directories
+venv/
+ENV/
+env/
+.venv/
+
+# Ignore backup files and OS metadata
+*.bak
+*.swp
+*~

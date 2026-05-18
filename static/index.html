@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shadow IT Governance | Admin Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <div id="alertBanner" class="alert-banner hidden">
+        <span class="alert-icon">⚠️</span>
+        <span id="alertText">X CRITICAL risk events detected in the last 24 hours.</span>
+        <button onclick="document.getElementById('alertBanner').classList.add('hidden')">✕</button>
+    </div>
+
+    <header>
+        <div class="logo">
+            <div class="logo-icon"></div>
+            <h1>Shadow IT Governance</h1>
+        </div>
+        <div class="header-right">
+            <span id="liveClock">12:00:00 PM</span>
+            <button onclick="fetchData()" class="refresh-btn">⟳ Refresh</button>
+        </div>
+    </header>
+
+    <main>
+        <section class="kpi-grid">
+            <div class="kpi-card">
+                <h3>Total Scans</h3>
+                <p id="kpiTotalScans" class="kpi-value">-</p>
+            </div>
+            <div class="kpi-card">
+                <h3>Unique Employees</h3>
+                <p id="kpiEmployees" class="kpi-value">-</p>
+            </div>
+            <div class="kpi-card">
+                <h3>Unauthorized Tools</h3>
+                <p id="kpiTools" class="kpi-value">-</p>
+            </div>
+            <div class="kpi-card critical">
+                <h3>Critical Alerts</h3>
+                <p id="kpiCritical" class="kpi-value">-</p>
+            </div>
+        </section>
+
+        <section class="charts-row">
+            <div class="panel chart-panel">
+                <h2>Risk Distribution</h2>
+                <div class="donut-container">
+                    <canvas id="riskDonutChart"></canvas>
+                    <div class="donut-legend" id="donutLegend"></div>
+                </div>
+            </div>
+            <div class="panel chart-panel flex-grow">
+                <h2>14-Day Activity Trend</h2>
+                <div class="timeline-container">
+                    <canvas id="timelineChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <section class="tables-row">
+            <div class="panel">
+                <h2>Most Risky Tools</h2>
+                <div class="table-container">
+                    <table id="toolsTable">
+                        <thead>
+                            <tr>
+                                <th>Domain</th>
+                                <th>Class</th>
+                                <th>Avg Score</th>
+                                <th>Highest Risk</th>
+                                <th>Users</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Populated via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>Employee Exposure</h2>
+                <div class="table-container">
+                    <table id="employeesTable">
+                        <thead>
+                            <tr>
+                                <th>Email</th>
+                                <th>Dept</th>
+                                <th>Scans</th>
+                                <th>Worst Risk</th>
+                                <th>Tools Tried</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Populated via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <section class="panel full-width">
+            <div class="panel-header">
+                <h2>Full Activity Log</h2>
+                <input type="text" id="logSearch" placeholder="Search domains or emails..." onkeyup="renderLogTable()">
+            </div>
+            <div class="table-container">
+                <table id="logTable" class="interactive-table">
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Employee</th>
+                            <th>Domain</th>
+                            <th>Score</th>
+                            <th>Risk Level</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Populated via JS -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <!-- Detail Modal Overlay -->
+    <div id="detailModal" class="modal-overlay hidden">
+        <div class="modal-content glass-panel">
+            <button class="close-modal" onclick="closeModal()">✕</button>
+            <h2 id="modalTitle">Scan Details</h2>
+            
+            <div class="modal-grid">
+                <div class="modal-section">
+                    <h3>Employee Info</h3>
+                    <p><strong>Email:</strong> <span id="mEmail"></span></p>
+                    <p><strong>Dept:</strong> <span id="mDept"></span></p>
+                    <p><strong>ID:</strong> <span id="mId"></span></p>
+                </div>
+                
+                <div class="modal-section">
+                    <h3>Site Info</h3>
+                    <p><strong>Domain:</strong> <span id="mDomain"></span></p>
+                    <p><strong>URL:</strong> <span id="mUrl" class="truncate"></span></p>
+                    <p><strong>Class:</strong> <span id="mClass"></span></p>
+                </div>
+                
+                <div class="modal-section risk-highlight">
+                    <h3>Risk Assessment</h3>
+                    <div class="score-display">
+                        <div class="score-circle" id="mScoreCircle">
+                            <span id="mScore"></span>
+                        </div>
+                        <div class="score-labels">
+                            <span id="mRiskLevel" class="badge"></span>
+                            <span class="confidence">Confidence: <span id="mConf"></span>%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-reasons">
+                <h3>Flagged Reasons</h3>
+                <ul id="mReasonsList"></ul>
+            </div>
+
+            <div class="modal-recommendation">
+                <strong>Action:</strong> <span id="mRec"></span>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

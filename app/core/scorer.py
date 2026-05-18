@@ -102,3 +102,48 @@ def score(payload: ExtensionPayload, classification: str) -> ScoredResult:
         reasons=reasons,
         recommendation=recommendation
     )
+
+
+def score_unified(sources: list, base_score: int, classification: str) -> dict:
+    """
+    Multi-source confidence boost for UnifiedDetection rows.
+      - 1 source  → no change
+      - 2 sources → +15 score, +15 confidence
+      - 3 sources → +25 score, +25 confidence, risk level bumped one tier
+    """
+    n = len(sources)
+    score_boost = 0
+    confidence_boost = 0
+    bump_level = False
+
+    if n >= 3:
+        score_boost = 25
+        confidence_boost = 25
+        bump_level = True
+    elif n == 2:
+        score_boost = 15
+        confidence_boost = 15
+
+    risk_score = min(base_score + score_boost, 100)
+    confidence_score = min(50 + confidence_boost + (10 if classification != "unknown" else 0), 100)
+
+    if risk_score >= 80:
+        risk_level = "CRITICAL"
+    elif risk_score >= 60:
+        risk_level = "HIGH"
+    elif risk_score >= 30:
+        risk_level = "MEDIUM"
+    else:
+        risk_level = "LOW"
+
+    if bump_level:
+        tiers = ["LOW", "MEDIUM", "HIGH", "CRITICAL"]
+        idx = tiers.index(risk_level)
+        risk_level = tiers[min(idx + 1, 3)]
+
+    return {
+        "risk_score": risk_score,
+        "risk_level": risk_level,
+        "confidence_score": confidence_score,
+    }
+

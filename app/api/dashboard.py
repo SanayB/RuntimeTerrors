@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, desc
 
 from app.db.session import get_db
-from app.db.models import ScanResult
+from app.db.models import ScanResult, DnsEvent, SsoEvent, UnifiedDetection
 
 router = APIRouter()
 
@@ -42,25 +42,38 @@ def get_dashboard(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)
 def get_stats(db: Session = Depends(get_db)):
     """
     Returns aggregated statistics for the admin dashboard.
+    Now includes per-source breakdown and multi-source hit count.
     """
     total_scans = db.query(ScanResult).count()
-    
+
     risk_breakdown = db.query(ScanResult.risk_level, func.count(ScanResult.id))\
         .group_by(ScanResult.risk_level).all()
-    
     risk_dict = {row[0]: row[1] for row in risk_breakdown}
-    
+
     top_domains = db.query(ScanResult.domain, func.count(ScanResult.id))\
         .group_by(ScanResult.domain)\
         .order_by(func.count(ScanResult.id).desc())\
         .limit(5).all()
-        
     top_domains_dict = {row[0]: row[1] for row in top_domains}
-    
+
+    # Source breakdown counts
+    dns_count = db.query(DnsEvent).filter(DnsEvent.flagged == True).count()
+    sso_count = db.query(SsoEvent).filter(SsoEvent.flagged == True).count()
+    all_unified = db.query(UnifiedDetection).all()
+    multi_source_hits = sum(
+        1 for r in all_unified if len(r.sources.split("|")) > 1
+    )
+
     return {
         "totalScans": total_scans,
         "riskLevelBreakdown": risk_dict,
-        "topScannedDomains": top_domains_dict
+        "topScannedDomains": top_domains_dict,
+        "sourceBreakdown": {
+            "extension": total_scans,
+            "dns": dns_count,
+            "sso": sso_count,
+        },
+        "multiSourceHits": multi_source_hits,
     }
 
 

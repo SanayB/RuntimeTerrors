@@ -8,69 +8,129 @@
 </head>
 <body>
     <div class="container">
-        <header>
-            <div class="logo"></div>
-            <h1>SaaS Security Monitor</h1>
-            <div class="status-indicator active" id="ext-status"></div>
-        </header>
 
-        <div class="main-card">
-            <div class="domain-header">
-                <span class="label">Current Target</span>
-                <h2 id="current-domain">Scanning...</h2>
+        <!-- ── Setup Screen (shown when identity not configured) ── -->
+        <div id="setup-screen" style="display:none;">
+            <header>
+                <div class="logo"></div>
+                <h1>SaaS Security Monitor</h1>
+            </header>
+            <div class="main-card" style="padding:16px;">
+                <div class="domain-header" style="margin-bottom:12px;">
+                    <span class="label">First-Time Setup</span>
+                    <h2 style="font-size:1rem;margin-top:4px;">Enter your work identity</h2>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:10px;">
+                    <input
+                        type="email"
+                        id="setup-email"
+                        placeholder="your.name@company.com"
+                        style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.15);
+                               border-radius:8px;padding:9px 12px;color:#fff;font-size:0.85rem;outline:none;width:100%;box-sizing:border-box;"
+                    >
+                    <input
+                        type="text"
+                        id="setup-dept"
+                        placeholder="Department (e.g. Engineering)"
+                        style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.15);
+                               border-radius:8px;padding:9px 12px;color:#fff;font-size:0.85rem;outline:none;width:100%;box-sizing:border-box;"
+                    >
+                    <button id="setup-save-btn"
+                        style="background:linear-gradient(135deg,#00d2ff,#0072ff);border:none;border-radius:8px;
+                               padding:10px;color:#fff;font-weight:700;font-size:0.9rem;cursor:pointer;width:100%;">
+                        Save &amp; Activate →
+                    </button>
+                    <p id="setup-error" style="color:#ff4757;font-size:0.75rem;display:none;text-align:center;">
+                        Please enter a valid work email.
+                    </p>
+                </div>
             </div>
-            
-            <div class="risk-badge" id="risk-badge">
-                <span id="risk-level">PENDING</span>
-            </div>
+            <footer>
+                <p class="footer-text">🔒 Identity stored locally — never shared</p>
+            </footer>
         </div>
 
-        <div class="grid-stats">
-            <div class="stat-card" id="card-ai">
-                <span class="stat-label">AI Tool Detection</span>
-                <strong class="stat-value" id="ai-status">--</strong>
+        <!-- ── Main Monitor Screen (shown when identity is configured) ── -->
+        <div id="monitor-screen" style="display:none;">
+            <header>
+                <div class="logo"></div>
+                <h1>SaaS Security Monitor</h1>
+                <div class="status-indicator active" id="ext-status"></div>
+            </header>
+
+            <!-- Identity badge -->
+            <div style="background:rgba(0,210,255,0.06);border:1px solid rgba(0,210,255,0.2);
+                        border-radius:10px;padding:8px 12px;margin-bottom:10px;display:flex;
+                        justify-content:space-between;align-items:center;">
+                <div>
+                    <p style="color:#94a3b8;font-size:0.7rem;margin:0 0 2px;">Monitoring as</p>
+                    <p id="identity-email" style="color:#00d2ff;font-size:0.82rem;font-weight:600;margin:0;"></p>
+                    <p id="identity-dept"  style="color:#64748b;font-size:0.7rem;margin:0;"></p>
+                </div>
+                <button id="change-identity-btn"
+                    style="background:transparent;border:1px solid rgba(255,255,255,0.1);border-radius:6px;
+                           padding:4px 8px;color:#94a3b8;font-size:0.7rem;cursor:pointer;">
+                    Change
+                </button>
             </div>
-            <div class="stat-card">
-                <span class="stat-label">Category</span>
-                <strong class="stat-value" id="category-status">--</strong>
+
+            <div class="main-card">
+                <div class="domain-header">
+                    <span class="label">Current Target</span>
+                    <h2 id="current-domain">Scanning...</h2>
+                </div>
+                <div class="risk-badge" id="risk-badge">
+                    <span id="risk-level">PENDING</span>
+                </div>
             </div>
-            <div class="stat-card">
-                <span class="stat-label">Connection</span>
-                <strong class="stat-value" id="https-status">--</strong>
+
+            <div class="grid-stats">
+                <div class="stat-card" id="card-ai">
+                    <span class="stat-label">AI Tool Detection</span>
+                    <strong class="stat-value" id="ai-status">--</strong>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Category</span>
+                    <strong class="stat-value" id="category-status">--</strong>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Connection</span>
+                    <strong class="stat-value" id="https-status">--</strong>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Cookies Detected</span>
+                    <strong class="stat-value" id="cookie-status">--</strong>
+                </div>
             </div>
-            <div class="stat-card">
-                <span class="stat-label">Cookies Detected</span>
-                <strong class="stat-value" id="cookie-status">--</strong>
+
+            <div class="permissions-card">
+                <h3>Browser Permissions</h3>
+                <ul class="perm-list">
+                    <li>
+                        <span>Camera</span>
+                        <span class="badge" id="perm-camera">--</span>
+                    </li>
+                    <li>
+                        <span>Microphone</span>
+                        <span class="badge" id="perm-mic">--</span>
+                    </li>
+                    <li>
+                        <span>Notifications</span>
+                        <span class="badge" id="perm-notif">--</span>
+                    </li>
+                </ul>
             </div>
+
+            <div class="login-card" id="login-info-card" style="display:none;">
+                <h3>Detected Login</h3>
+                <p id="login-email-display" class="login-email"></p>
+            </div>
+
+            <footer>
+                <p class="footer-text">🔒 Auto-scanning all pages • Secure Enterprise Agent v1.0</p>
+            </footer>
         </div>
 
-        <div class="permissions-card">
-            <h3>Browser Permissions</h3>
-            <ul class="perm-list">
-                <li>
-                    <span>Camera</span>
-                    <span class="badge" id="perm-camera">--</span>
-                </li>
-                <li>
-                    <span>Microphone</span>
-                    <span class="badge" id="perm-mic">--</span>
-                </li>
-                <li>
-                    <span>Notifications</span>
-                    <span class="badge" id="perm-notif">--</span>
-                </li>
-            </ul>
-        </div>
-
-        <div class="login-card" id="login-info-card" style="display:none;">
-            <h3>Detected Login</h3>
-            <p id="login-email-display" class="login-email"></p>
-        </div>
-        
-        <footer>
-            <a href="http://localhost:8000/dashboard" target="_blank" class="btn-scan btn-dashboard">View Admin Dashboard →</a>
-            <p class="footer-text">Auto-scanning all pages • Secure Enterprise Agent v1.0</p>
-        </footer>
     </div>
     <script src="popup.js"></script>
 </body>

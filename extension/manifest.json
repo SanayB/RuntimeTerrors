@@ -9,7 +9,9 @@
     "cookies",
     "history",
     "activeTab",
-    "scripting"
+    "scripting",
+    "webNavigation",
+    "webRequest"
   ],
   "host_permissions": [
     "<all_urls>"

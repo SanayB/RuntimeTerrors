@@ -213,9 +213,31 @@ h1 {
     box-shadow: 0 0 15px var(--accent-glow);
 }
 
+.login-card {
+    background: rgba(59, 130, 246, 0.08);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: 8px;
+    padding: 12px;
+}
+
+.login-card h3 {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    letter-spacing: 0.5px;
+}
+
+.login-email {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent-blue);
+    word-break: break-all;
+}
+
 .footer-text {
     text-align: center;
     font-size: 10px;
     color: var(--text-muted);
-    margin-top: 10px;
+    margin-top: 4px;
 }

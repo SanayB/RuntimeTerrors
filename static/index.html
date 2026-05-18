@@ -9,6 +9,24 @@
 </head>
 <body>
 
+    <!-- Admin Login Gate -->
+    <div id="adminGate" class="admin-gate">
+        <div class="admin-gate-card">
+            <div class="gate-logo">
+                <div class="gate-logo-icon"></div>
+            </div>
+            <h1 class="gate-title">Shadow IT Governance</h1>
+            <p class="gate-subtitle">Admin Access Only</p>
+            <div class="gate-form">
+                <input type="password" id="adminPassword" placeholder="Enter admin password" class="gate-input" onkeydown="if(event.key==='Enter') checkAdminPassword()">
+                <p id="gateError" class="gate-error hidden">Incorrect password. Access denied.</p>
+                <button onclick="checkAdminPassword()" class="gate-btn">Authenticate →</button>
+            </div>
+            <p class="gate-notice">🔒 This interface is restricted to IT administrators only.<br>Employee access is not permitted.</p>
+        </div>
+    </div>
+
+    <div id="dashboardContent" style="display:none;">
     <div id="alertBanner" class="alert-banner hidden">
         <span class="alert-icon">⚠️</span>
         <span id="alertText">X CRITICAL risk events detected in the last 24 hours.</span>
@@ -43,6 +61,10 @@
             <div class="kpi-card critical">
                 <h3>Critical Alerts</h3>
                 <p id="kpiCritical" class="kpi-value">-</p>
+            </div>
+            <div class="kpi-card" style="border-color: rgba(139,92,246,0.4);">
+                <h3>Multi-Source Hits</h3>
+                <p id="kpiMultiSource" class="kpi-value" style="color:#a78bfa">-</p>
             </div>
         </section>
 
@@ -101,6 +123,41 @@
                         </tbody>
                     </table>
                 </div>
+            </div>
+        </section>
+
+        <!-- Unified Detections Section -->
+        <section class="panel full-width">
+            <div class="panel-header">
+                <h2>🔗 Unified Detections <span style="font-size:0.8rem;color:var(--text-muted);font-weight:400">(All Sources)</span></h2>
+                <div style="display:flex;gap:10px;align-items:center">
+                    <select id="sourceFilter" onchange="applySourceFilter()" class="source-filter-select">
+                        <option value="">All Sources</option>
+                        <option value="extension">Extension Only</option>
+                        <option value="dns">DNS Only</option>
+                        <option value="sso">SSO Only</option>
+                        <option value="dns|sso">DNS + SSO</option>
+                        <option value="extension|dns|sso">All 3 Sources</option>
+                    </select>
+                </div>
+            </div>
+            <div class="table-container">
+                <table id="detectionsTable" class="interactive-table">
+                    <thead>
+                        <tr>
+                            <th>Domain / Tool</th>
+                            <th>Employee</th>
+                            <th>Dept</th>
+                            <th>Sources</th>
+                            <th>Risk Score</th>
+                            <th>Risk Level</th>
+                            <th>Last Seen</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Populated via JS -->
+                    </tbody>
+                </table>
             </div>
         </section>
 
@@ -173,6 +230,8 @@
             </div>
         </div>
     </div>
+
+    </div> <!-- end dashboardContent -->
 
     <script src="app.js"></script>
 </body>

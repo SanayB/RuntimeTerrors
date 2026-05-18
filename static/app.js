@@ -1,3 +1,26 @@
+// --- Admin Gate ---
+const ADMIN_PASSWORD = "admin123";
+
+function checkAdminPassword() {
+    const input = document.getElementById('adminPassword').value;
+    if (input === ADMIN_PASSWORD) {
+        sessionStorage.setItem('adminAuth', '1');
+        document.getElementById('adminGate').style.display = 'none';
+        document.getElementById('dashboardContent').style.display = 'block';
+        fetchData();
+    } else {
+        document.getElementById('gateError').classList.remove('hidden');
+        document.getElementById('adminPassword').value = '';
+        document.getElementById('adminPassword').focus();
+    }
+}
+
+// Check if already authenticated this session
+if (sessionStorage.getItem('adminAuth') === '1') {
+    document.getElementById('adminGate').style.display = 'none';
+    document.getElementById('dashboardContent').style.display = 'block';
+}
+
 const API_BASE = "/api";
 
 // Colors for Risk Levels
@@ -9,12 +32,16 @@ const colors = {
 };
 
 let allLogs = [];
+let allDetections = [];
 
-// Init
+// Init — clock starts always; data only loads after admin auth
 document.addEventListener("DOMContentLoaded", () => {
     updateClock();
     setInterval(updateClock, 1000);
-    fetchData();
+    // fetchData is called by the gate on success, or on page reload if already authed
+    if (sessionStorage.getItem('adminAuth') === '1') {
+        fetchData();
+    }
 });
 
 function updateClock() {
@@ -25,15 +52,17 @@ async function fetchData() {
     const refreshBtn = document.querySelector('.refresh-btn');
     if (refreshBtn) refreshBtn.textContent = 'Refreshing...';
     try {
-        const [stats, domains, employees, timeline, logs] = await Promise.all([
+        const [stats, domains, employees, timeline, logs, detections] = await Promise.all([
             fetch(`${API_BASE}/dashboard/stats`).then(r => r.json()),
             fetch(`${API_BASE}/dashboard/domains`).then(r => r.json()),
             fetch(`${API_BASE}/dashboard/employees`).then(r => r.json()),
             fetch(`${API_BASE}/dashboard/timeline`).then(r => r.json()),
-            fetch(`${API_BASE}/dashboard`).then(r => r.json())
+            fetch(`${API_BASE}/dashboard`).then(r => r.json()),
+            fetch(`${API_BASE}/detections`).then(r => r.json()),
         ]);
 
         allLogs = logs.results;
+        allDetections = detections;
 
         renderKPIs(stats, domains, employees);
         renderAlertBanner(stats.riskLevelBreakdown.CRITICAL || 0);
@@ -42,6 +71,7 @@ async function fetchData() {
         renderToolsTable(domains);
         renderEmployeesTable(employees);
         renderLogTable();
+        renderDetectionsTable(allDetections);
 
     } catch (e) {
         console.error("Failed to fetch dashboard data", e);
@@ -56,11 +86,12 @@ setInterval(fetchData, 30000);
 function renderKPIs(stats, domains, employees) {
     document.getElementById("kpiTotalScans").textContent = stats.totalScans;
     document.getElementById("kpiEmployees").textContent = employees.length;
-    
+
     const unauthCount = domains.filter(d => d.classification !== 'approved').length;
     document.getElementById("kpiTools").textContent = unauthCount;
-    
+
     document.getElementById("kpiCritical").textContent = stats.riskLevelBreakdown.CRITICAL || 0;
+    document.getElementById("kpiMultiSource").textContent = stats.multiSourceHits ?? 0;
 }
 
 function renderAlertBanner(criticalCount) {
@@ -134,6 +165,44 @@ function renderLogTable() {
             <td>${getBadge(log.riskLevel)}</td>
         </tr>
     `).join("");
+}
+
+// --- Unified Detections Table ---
+function renderDetectionsTable(detections) {
+    const tbody = document.querySelector("#detectionsTable tbody");
+    if (!tbody) return;
+    if (!detections || detections.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:20px;">No detections yet. Run the DNS/SSO simulators to populate.</td></tr>`;
+        return;
+    }
+    tbody.innerHTML = detections.map(d => {
+        const sourceBadges = (d.sources || []).map(s =>
+            `<span class="source-badge ${s}">${s.toUpperCase()}</span>`
+        ).join("");
+        const tool = d.saasToolName ? `<strong>${d.saasToolName}</strong><br><span style="font-size:0.75rem;color:var(--text-muted)">${d.domain}</span>` : `<strong>${d.domain}</strong>`;
+        const lastSeen = d.lastSeen ? new Date(d.lastSeen).toLocaleString() : "—";
+        return `
+        <tr>
+            <td>${tool}</td>
+            <td style="font-size:0.85rem">${d.userEmail || "—"}</td>
+            <td>${d.department || "—"}</td>
+            <td>${sourceBadges}</td>
+            <td>${getScoreBar(d.combinedRiskScore, d.combinedRiskLevel)}</td>
+            <td>${getBadge(d.combinedRiskLevel)}</td>
+            <td style="color:var(--text-muted);font-size:0.8rem">${lastSeen}</td>
+        </tr>`;
+    }).join("");
+}
+
+async function applySourceFilter() {
+    const filter = document.getElementById("sourceFilter").value;
+    const url = filter ? `${API_BASE}/detections?source=${encodeURIComponent(filter)}` : `${API_BASE}/detections`;
+    try {
+        const data = await fetch(url).then(r => r.json());
+        renderDetectionsTable(data);
+    } catch (e) {
+        console.error("Failed to filter detections", e);
+    }
 }
 
 // Modal Logic

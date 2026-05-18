@@ -1,94 +1,138 @@
-// popup.js
+// popup.js — Handles setup screen + live monitor screen
 
-document.addEventListener('DOMContentLoaded', () => {
-    fetchLatestAnalysis();
-    // Auto-refresh popup every 3 seconds while open
-    setInterval(fetchLatestAnalysis, 3000);
-});
+const REFRESH_INTERVAL = 3000; // ms
 
-function fetchLatestAnalysis() {
-    chrome.runtime.sendMessage({ action: "get_latest_analysis" }, (response) => {
-        if (response) {
-            updateUI(response);
+// ---------------------------------------------------------------------------
+// Identity Management
+// ---------------------------------------------------------------------------
+
+function loadAndShowScreen() {
+    chrome.storage.sync.get(['employeeEmail', 'department', 'employeeId'], (result) => {
+        if (result.employeeEmail && result.department) {
+            showMonitorScreen(result);
         } else {
-            // If no immediate response, check local storage
-            chrome.storage.local.get(['latestAnalysis'], function(result) {
-                if (result.latestAnalysis) {
-                    updateUI(result.latestAnalysis);
-                } else {
-                    document.getElementById('current-domain').textContent = "Navigate to a site to scan";
-                }
-            });
+            showSetupScreen();
         }
     });
 }
 
-function updateUI(data) {
-    if (!data) return;
+function showSetupScreen() {
+    document.getElementById('setup-screen').style.display   = 'block';
+    document.getElementById('monitor-screen').style.display = 'none';
+}
 
-    // Basic Info
-    document.getElementById('current-domain').textContent = data.domain || "Unknown";
-    document.getElementById('category-status').textContent = data.classification || data.category || "--";
-    
-    // AI Status
-    const aiStatusEl = document.getElementById('ai-status');
-    if (data.isAi) {
-        aiStatusEl.textContent = "DETECTED";
-        aiStatusEl.className = "stat-value stat-alert";
-        document.getElementById('card-ai').style.borderColor = "var(--risk-high)";
-    } else {
-        aiStatusEl.textContent = "None";
-        aiStatusEl.className = "stat-value";
-        document.getElementById('card-ai').style.borderColor = "var(--border-color)";
+function showMonitorScreen(identity) {
+    document.getElementById('setup-screen').style.display   = 'none';
+    document.getElementById('monitor-screen').style.display = 'block';
+
+    document.getElementById('identity-email').textContent = identity.employeeEmail || '—';
+    document.getElementById('identity-dept').textContent  = identity.department    || '—';
+
+    startMonitor();
+}
+
+// Save identity from setup form
+document.getElementById('setup-save-btn').addEventListener('click', () => {
+    const email = document.getElementById('setup-email').value.trim();
+    const dept  = document.getElementById('setup-dept').value.trim();
+
+    if (!email.includes('@') || !email.includes('.')) {
+        document.getElementById('setup-error').style.display = 'block';
+        return;
     }
 
-    // Connection
-    document.getElementById('https-status').textContent = data.https ? "Secure (HTTPS)" : "Insecure (HTTP)";
-    document.getElementById('https-status').style.color = data.https ? "var(--risk-low)" : "var(--risk-high)";
-    
-    // Cookies
-    document.getElementById('cookie-status').textContent = `${data.cookieCount || 0} (${data.trackingCookieCount || 0} Tracking)`;
+    // Auto-generate employee ID from email prefix
+    const empId = 'EMP-' + email.split('@')[0].toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
 
-    // Permissions (check if granted)
-    const perms = data.requestedPermissions || [];
-    updatePermissionBadge('perm-camera', perms.includes('camera') ? 'granted' : '--');
-    updatePermissionBadge('perm-mic', perms.includes('microphone') ? 'granted' : '--');
-    updatePermissionBadge('perm-notif', perms.includes('notifications') ? 'granted' : '--');
+    chrome.storage.sync.set({
+        employeeEmail: email,
+        department:    dept || 'General',
+        employeeId:    empId
+    }, () => {
+        showMonitorScreen({ employeeEmail: email, department: dept || 'General' });
+    });
+});
 
-    // Risk Score
-    const riskBadge = document.getElementById('risk-badge');
-    const riskLevel = document.getElementById('risk-level');
-    
-    if (data.riskLevel) {
-        riskLevel.textContent = data.riskLevel;
-        riskBadge.className = `risk-badge risk-${data.riskLevel.toLowerCase()}`;
-    } else {
-        let fallbackRisk = "LOW";
-        if (data.isAi) fallbackRisk = "MEDIUM";
-        if (!data.https) fallbackRisk = "HIGH";
-        
-        riskLevel.textContent = fallbackRisk + " (EST)";
-        riskBadge.className = `risk-badge risk-${fallbackRisk.toLowerCase()}`;
-    }
+// "Change" button — go back to setup
+document.getElementById('change-identity-btn').addEventListener('click', () => {
+    // Pre-fill with current values
+    chrome.storage.sync.get(['employeeEmail', 'department'], (result) => {
+        document.getElementById('setup-email').value = result.employeeEmail || '';
+        document.getElementById('setup-dept').value  = result.department    || '';
+    });
+    showSetupScreen();
+});
 
-    // Show detected login email if available
-    const loginCard = document.getElementById('login-info-card');
-    const loginEmailDisplay = document.getElementById('login-email-display');
-    const emailToShow = data.loginEmail || data.employeeEmail || "";
-    
-    if (emailToShow && emailToShow !== "demo@company.com") {
-        loginCard.style.display = "block";
-        loginEmailDisplay.textContent = `🔐 ${emailToShow}`;
-    } else {
-        loginCard.style.display = "none";
+// ---------------------------------------------------------------------------
+// Monitor Screen — Live scan data from background.js
+// ---------------------------------------------------------------------------
+
+let monitorTimer = null;
+
+function startMonitor() {
+    updateDisplay(); // immediate first load
+    if (!monitorTimer) {
+        monitorTimer = setInterval(updateDisplay, REFRESH_INTERVAL);
     }
 }
 
-function updatePermissionBadge(elementId, status) {
-    const el = document.getElementById(elementId);
-    el.textContent = status || "--";
-    el.className = "badge"; // Reset class
-    if (status === "granted") el.classList.add("granted");
-    else if (status === "denied") el.classList.add("denied");
-    else if (status === "prompt") el.classList.add("prompt");
+function updateDisplay() {
+    chrome.runtime.sendMessage({ action: "get_latest_analysis" }, (data) => {
+        if (!data) return;
+
+        // Domain
+        const domainEl = document.getElementById('current-domain');
+        if (domainEl) domainEl.textContent = data.domain || 'Scanning...';
+
+        // Risk badge
+        const riskLevel = data.riskLevel || 'PENDING';
+        const badgeEl   = document.getElementById('risk-badge');
+        const riskEl    = document.getElementById('risk-level');
+        if (riskEl) riskEl.textContent = riskLevel;
+        if (badgeEl) {
+            badgeEl.className = 'risk-badge ' + riskLevel.toLowerCase();
+        }
+
+        // Stats
+        const set = (id, val) => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = val;
+        };
+
+        set('ai-status',       data.isAi       ? '🤖 AI Tool'  : '—');
+        set('category-status', data.category    || '—');
+        set('https-status',    data.https       ? '🔒 Secure'   : '⚠️ Insecure');
+        set('cookie-status',   data.cookieCount != null ? data.cookieCount : '—');
+
+        // AI card highlight
+        const aiCard = document.getElementById('card-ai');
+        if (aiCard) aiCard.style.borderColor = data.isAi ? '#f39c12' : '';
+
+        // Permissions
+        const permClass = (val) => val ? 'badge danger' : 'badge safe';
+        const permText  = (val) => val ? 'Granted' : 'Blocked';
+
+        const camEl   = document.getElementById('perm-camera');
+        const micEl   = document.getElementById('perm-mic');
+        const notifEl = document.getElementById('perm-notif');
+
+        if (camEl)   { camEl.className   = permClass(data.hasCameraAccess);   camEl.textContent   = permText(data.hasCameraAccess); }
+        if (micEl)   { micEl.className   = permClass(data.hasMicAccess);      micEl.textContent   = permText(data.hasMicAccess); }
+        if (notifEl) { notifEl.className = 'badge safe'; notifEl.textContent = 'Blocked'; }
+
+        // Captured login email
+        const loginCard  = document.getElementById('login-info-card');
+        const loginEmail = document.getElementById('login-email-display');
+        if (data.loginEmail && data.loginEmail.includes('@')) {
+            if (loginCard)  loginCard.style.display  = 'block';
+            if (loginEmail) loginEmail.textContent    = data.loginEmail;
+        } else {
+            if (loginCard)  loginCard.style.display  = 'none';
+        }
+    });
 }
+
+// ---------------------------------------------------------------------------
+// Init
+// ---------------------------------------------------------------------------
+loadAndShowScreen();

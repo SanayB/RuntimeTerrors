@@ -8,6 +8,7 @@ from app.db.models import ScanResult
 from app.core.models import ExtensionPayload
 from app.core.classifier import classify, is_login_page
 from app.core.scorer import score
+from app.core.pipeline import update_unified_detection
 
 router = APIRouter()
 
@@ -19,12 +20,9 @@ def analyze_payload(payload: dict, db: Session = Depends(get_db)):
     Records all events regardless of whether it's a login page.
     """
     try:
-        print(">>> INSIDE ANALYZE_PAYLOAD")
         # 1. Validate payload
         ext_payload = ExtensionPayload.parse_payload(payload)
-        print(">>> PAYLOAD PARSED SUCCESSFULLY")
     except ValueError as e:
-        print(">>> VALIDATION ERROR:", e)
         raise HTTPException(status_code=400, detail=str(e))
 
     # 2. Note if it's a login page (we record all events now)
@@ -50,12 +48,26 @@ def analyze_payload(payload: dict, db: Session = Depends(get_db)):
         reasons=json.dumps(scored_result.reasons),
         recommendation=scored_result.recommendation
     )
-
     db.add(db_result)
     db.commit()
     db.refresh(db_result)
 
-    # 6. Return Response to Extension
+    # 6. Register in unified detection pipeline (source = extension)
+    try:
+        update_unified_detection(
+            domain=ext_payload.site.domain,
+            user_email=ext_payload.meta.employeeEmail,
+            department=ext_payload.meta.department,
+            source="extension",
+            base_risk=scored_result.riskScore,
+            classification=classification,
+            db=db,
+        )
+        db.commit()
+    except Exception:
+        pass  # Non-critical — don't fail the extension response if pipeline errors
+
+    # 7. Return Response to Extension
     return {
         "domain": ext_payload.site.domain,
         "classification": classification,

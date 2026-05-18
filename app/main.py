@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.db.session import engine, Base
-from app.api import analyze, dashboard
+from app.api import analyze, dashboard, detections
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -25,6 +25,7 @@ app.add_middleware(
 
 app.include_router(analyze.router, prefix="/api", tags=["analyze"])
 app.include_router(dashboard.router, prefix="/api", tags=["dashboard"])
+app.include_router(detections.router, prefix="/api", tags=["detections"])
 
 # Mount the static dashboard so it serves at /dashboard
 app.mount("/dashboard", StaticFiles(directory="static", html=True), name="static")
